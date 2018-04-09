@@ -18,6 +18,7 @@ from helpers import systemHelper
 from objects import fokabot
 from objects import glob
 from helpers import chatHelper as chat
+from helpers import packetHelper
 from common.web import cheesegull
 
 """
@@ -1124,7 +1125,26 @@ def rtx(fro, chan, message):
 	userToken.enqueue(serverPackets.rtx(message))
 	return ":ok_hand:"
 
+def rawPacket(fro, chan, message):
+	target = message[0]
+	message = " ".join(message[1:]).strip()
+	if not message:
+		return "Invalid message"
+	targetUserID = userUtils.getIDSafe(target)
+	if not targetUserID:
+		return "{}: user not found".format(target)
+	userToken = glob.tokens.getTokenFromUserID(targetUserID, ignoreIRC=True, _all=False)
 
+	p = message.split(" ", 1)
+
+	try:
+		packetID = int(p[0])
+		packetData = eval(p[1])
+	except Exception:
+		return "Error"
+
+	userToken.enqueue(packetHelper.buildPacket(packetID, packetData))
+	return ":thinking:"
 
 
 """
@@ -1276,6 +1296,11 @@ commands = [
 		"privileges": privileges.ADMIN_MANAGE_USERS,
 		"syntax": "<username> <message>",
 		"callback": rtx
+	}, {
+		"trigger": "!raw",
+		"privileges": privileges.ADMIN_MANAGE_SERVERS,
+		"syntax": "<username> <byte> <array>",
+		"callback": rawPacket
 	}
 	#
 	#	"trigger": "!acc",
